@@ -57,7 +57,30 @@ EOF
 
 variable "autospotting_disable_event_based_instance_replacement" {
   description = <<EOF
-  Disables the event based instance replacement, forcing AutoSpotting to run in legacy cron mode.
+  Disables the event based instance replacement, forcing AutoSpotting to run in
+  legacy cron mode.
+  EOF
+  default     = "false"
+}
+
+variable "autospotting_disable_instance_rebalance_recommendation" {
+  description = <<EOF
+  Disables the handling of instance rebalancing events, only handling the 2 minute
+  termination events.
+
+  Pros:
+  - handling these give earlier instance replacements than the usual 2 minute notice,
+    typically between 5-10 minutes.
+  - they allow the execution of termination lifecycle hooks.
+
+  Cons:
+  - These events fire for all instances in a given capacity pool and have been seen
+    to cause multiple parallel instance replacements on groups with multiple instances
+    per AZ.
+  - sometimes the instances aren't terminated, resulting in extra churn.
+
+  Recommendation: set to true(disabled) on large groups, which have multiple Spot
+  instances per AZ, to avoid multiple instance replacements in parallel.
   EOF
   default     = "false"
 }
@@ -230,7 +253,7 @@ variable "lambda_source_image" {
 
 variable "lambda_source_image_tag" {
   description = "The version of the Docker image used for the Lambda function"
-  default     = "1.0.6"
+  default     = "1.0.9-rc2"
 }
 
 

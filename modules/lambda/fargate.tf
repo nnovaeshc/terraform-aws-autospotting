@@ -15,9 +15,9 @@ module "vpc" {
   azs            = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
   public_subnets = ["10.0.0.0/25", "10.0.0.128/25"]
 
-  enable_nat_gateway   = false
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+  enable_nat_gateway      = false
+  enable_dns_hostnames    = true
+  enable_dns_support      = true
   map_public_ip_on_launch = true
 }
 
@@ -41,9 +41,9 @@ module "ecs-task-definition" {
   cloudwatch_log_group_name = aws_cloudwatch_log_group.autospotting.name
 }
 
-resource "aws_cloudwatch_log_group" "autospotting"{
-    name = "autospotting-${module.label.id}"
-    retention_in_days= 7
+resource "aws_cloudwatch_log_group" "autospotting" {
+  name              = "autospotting-${module.label.id}"
+  retention_in_days = 7
 }
 
 module "ecs-fargate-scheduled-task" {
@@ -60,5 +60,5 @@ module "ecs-fargate-scheduled-task" {
   event_target_task_definition_arn = module.ecs-task-definition.task_definition_arn
   event_rule_schedule_expression   = "rate(1 hour)"
   event_target_subnets             = module.vpc.public_subnets
-  event_target_assign_public_ip = true
-  }
+  event_target_assign_public_ip    = true
+}
