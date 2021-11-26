@@ -49,6 +49,8 @@ variable "label_context" {
     additional_tag_map  = map(string)
     regex_replace_chars = string
     id_length_limit     = number
+    label_key_case      = string
+    label_value_case    = string
   })
   default = {
     namespace           = ""
@@ -63,6 +65,8 @@ variable "label_context" {
     additional_tag_map  = {}
     regex_replace_chars = ""
     id_length_limit     = 0
+    label_key_case      = "lower"
+    label_value_case    = "lower"
   }
 }
 

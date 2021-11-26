@@ -31,7 +31,7 @@ resource "aws_ecs_cluster" "autospotting" {
 
 module "ecs-task-definition" {
   source  = "umotif-public/ecs-fargate-task-definition/aws"
-  version = "~> 1.0.0"
+  version = "~> 2.0.0"
 
   enabled              = true
   name_prefix          = "autospotting-${module.label.id}"
@@ -39,6 +39,10 @@ module "ecs-task-definition" {
   container_name       = "autospotting-${module.label.id}"
 
   cloudwatch_log_group_name = aws_cloudwatch_log_group.autospotting.name
+
+  task_container_environment = {
+    "BILLING_ONLY" = "true"
+  }
 }
 
 resource "aws_cloudwatch_log_group" "autospotting" {

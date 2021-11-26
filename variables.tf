@@ -253,7 +253,7 @@ variable "lambda_source_image" {
 
 variable "lambda_source_image_tag" {
   description = "The version of the Docker image used for the Lambda function"
-  default     = "1.0.9-rc2"
+  default     = "1.0.8-rc3"
 }
 
 
@@ -321,6 +321,8 @@ variable "label_context" {
     tags                = map(string)
     additional_tag_map  = map(string)
     regex_replace_chars = string
+    label_key_case      = string
+    label_value_case    = string
   })
   default = {
     namespace           = ""
@@ -334,5 +336,7 @@ variable "label_context" {
     tags                = {}
     additional_tag_map  = {}
     regex_replace_chars = ""
+    label_key_case      = "lower"
+    label_value_case    = "lower"
   }
 }

@@ -11,9 +11,7 @@ module "autospotting-test" {
   # all regions. After this value is changed, Terraform apply needs to be
   # executed twice because of the way we generate some Terraform code from
   # Terraform itself.
-  autospotting_regions_enabled                          = ["us-east-1", "eu-west-1"]
-  autospotting_disable_event_based_instance_replacement = true
-  autospotting_ebs_gp2_conversion_threshold             = 100
+  # autospotting_regions_enabled                          = ["us-east-1", "eu-west-1"]
 }
 
 # This can be used to install a second instance of AutoSpotting with different
