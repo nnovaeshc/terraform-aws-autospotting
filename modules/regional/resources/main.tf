@@ -144,3 +144,13 @@ resource "aws_lambda_permission" "autospotting_regional_autoscaling_lifecycle_ho
   source_arn    = aws_cloudwatch_event_rule.autospotting_regional_autoscaling_lifecycle_hook_event_capture.arn
 }
 
+
+resource "aws_cloudwatch_log_group" "log_group" {
+  name              = "/aws/lambda/${aws_lambda_function.regional_lambda.function_name}"
+  retention_in_days = var.log_retention_period
+
+  # retain log group on stack update and delete
+  lifecycle {
+    prevent_destroy = true
+  }
+}

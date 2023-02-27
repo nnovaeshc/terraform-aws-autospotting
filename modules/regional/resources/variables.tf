@@ -1,6 +1,11 @@
 variable "autospotting_lambda_arn" {}
 variable "lambda_iam_role" {}
 
+variable "log_retention_period" {
+  description = "Number of days to keep the Lambda function logs in CloudWatch."
+  default     = 7
+}
+
 # Label configuration
 variable "label_context" {
   description = "Used to pass in label module context"

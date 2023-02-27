@@ -25,29 +25,34 @@ resource "aws_lambda_function" "autospotting" {
 
   environment {
     variables = {
-      ALLOWED_INSTANCE_TYPES                    = var.autospotting_allowed_instance_types
-      BIDDING_POLICY                            = var.autospotting_bidding_policy
-      CRON_SCHEDULE                             = var.autospotting_cron_schedule
-      CRON_SCHEDULE_STATE                       = var.autospotting_cron_schedule_state
-      CRON_TIMEZONE                             = var.autospotting_cron_timezone
-      DISABLE_EVENT_BASED_INSTANCE_REPLACEMENT  = var.autospotting_disable_event_based_instance_replacement
-      DISABLE_INSTANCE_REBALANCE_RECOMMENDATION = var.autospotting_disable_instance_rebalance_recommendation
-      DISALLOWED_INSTANCE_TYPES                 = var.autospotting_disallowed_instance_types
-      EBS_GP2_CONVERSION_THRESHOLD              = var.autospotting_ebs_gp2_conversion_threshold
-      INSTANCE_TERMINATION_METHOD               = var.autospotting_instance_termination_method
-      LICENSE                                   = var.autospotting_license
-      MIN_ON_DEMAND_NUMBER                      = var.autospotting_min_on_demand_number
-      MIN_ON_DEMAND_PERCENTAGE                  = var.autospotting_min_on_demand_percentage
-      ON_DEMAND_PRICE_MULTIPLIER                = var.autospotting_on_demand_price_multiplier
-      PATCH_BEANSTALK_USERDATA                  = var.autospotting_patch_beanswalk_userdata
-      REGIONS                                   = join(",", var.autospotting_regions_enabled)
-      SPOT_PRICE_BUFFER_PERCENTAGE              = var.autospotting_spot_price_buffer_percentage
-      SPOT_PRODUCT_DESCRIPTION                  = var.autospotting_spot_product_description
-      SPOT_PRODUCT_PREMIUM                      = var.autospotting_spot_product_premium
-      SQS_QUEUE_URL                             = aws_sqs_queue.autospotting_fifo_queue.id
-      TAG_FILTERING_MODE                        = var.autospotting_tag_filtering_mode
-      TAG_FILTERS                               = var.autospotting_tag_filters
-      TERMINATION_NOTIFICATION_ACTION           = var.autospotting_termination_notification_action
+      ALLOW_PARALLEL_INSTANCE_REPLACEMENTS     = var.autospotting_allow_parallel_instance_replacements
+      ALLOWED_INSTANCE_TYPES                   = var.autospotting_allowed_instance_types
+      AUTOMATED_INSTANCE_DATA_UPDATE           = var.autospotting_automated_instance_data_update
+      BIDDING_POLICY                           = var.autospotting_bidding_policy
+      CONSIDER_EBS_BANDWIDTH                   = var.autospotting_consider_ebs_bandwidth
+      CRON_SCHEDULE                            = var.autospotting_cron_schedule
+      CRON_SCHEDULE_STATE                      = var.autospotting_cron_schedule_state
+      CRON_TIMEZONE                            = var.autospotting_cron_timezone
+      DISALLOWED_INSTANCE_TYPES                = var.autospotting_disallowed_instance_types
+      EBS_GP2_CONVERSION_THRESHOLD             = var.autospotting_ebs_gp2_conversion_threshold
+      ENABLE_INSTANCE_REBALANCE_RECOMMENDATION = var.autospotting_enable_instance_rebalance_recommendation
+      INSTANCE_TERMINATION_METHOD              = var.autospotting_instance_termination_method
+      MIN_ON_DEMAND_NUMBER                     = var.autospotting_min_on_demand_number
+      MIN_ON_DEMAND_PERCENTAGE                 = var.autospotting_min_on_demand_percentage
+      NOTIFICATION_SNS_TOPIC                   = aws_sns_topic.email_notification.arn
+      ON_DEMAND_PRICE_MULTIPLIER               = var.autospotting_on_demand_price_multiplier
+      PATCH_BEANSTALK_USERDATA                 = var.autospotting_patch_beanswalk_userdata
+      PRIORITIZED_INSTANCE_TYPES_BIAS          = var.autospotting_prioritized_instance_types_bias
+      REGIONS                                  = join(",", var.autospotting_regions_enabled)
+      SAVINGS_REPORTS_FREQUENCY                = var.autospotting_savings_reports_frequency
+      SPOT_ALLOCATION_STRATEGY                 = var.autospotting_spot_allocation_strategy
+      SPOT_PRICE_BUFFER_PERCENTAGE             = var.autospotting_spot_price_buffer_percentage
+      SPOT_PRODUCT_DESCRIPTION                 = var.autospotting_spot_product_description
+      SPOT_PRODUCT_PREMIUM                     = var.autospotting_spot_product_premium
+      SQS_QUEUE_URL                            = aws_sqs_queue.autospotting_fifo_queue.id
+      TAG_FILTERING_MODE                       = var.autospotting_tag_filtering_mode
+      TAG_FILTERS                              = var.autospotting_tag_filters
+      TERMINATION_NOTIFICATION_ACTION          = var.autospotting_termination_notification_action
     }
   }
   depends_on = [
@@ -91,6 +96,15 @@ data "aws_iam_policy_document" "autospotting_policy" {
       "aws-marketplace:MeterUsage",
       "aws-marketplace:RegisterUsage",
       "cloudformation:Describe*",
+      "codedeploy:CreateDeployment",
+      "codedeploy:GetApplicationRevision",
+      "codedeploy:GetDeploymentConfig",
+      "codedeploy:GetDeploymentGroup",
+      "codedeploy:ListApplications",
+      "codedeploy:ListDeploymentGroups",
+      "ec2:CreateLaunchTemplate",
+      "ec2:CreateFleet",
+      "ec2:DeleteLaunchTemplate",
       "ec2:CreateTags",
       "ec2:DeleteTags",
       "ec2:DescribeImages",
@@ -106,6 +120,7 @@ data "aws_iam_policy_document" "autospotting_policy" {
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
+      "sns:Publish",
     ]
     resources = ["*"]
   }
@@ -122,8 +137,9 @@ data "aws_iam_policy_document" "autospotting_policy" {
     actions = [
       "ssm:GetParameter",
       "ssm:PutParameter",
+      "ssm:GetParameterHistory"
     ]
-    resources = ["arn:aws:ssm:us-east-1:${data.aws_caller_identity.current.account_id}:parameter/autospotting-metering"]
+    resources = ["arn:aws:ssm:us-east-1:${data.aws_caller_identity.current.account_id}:parameter/autospotting*"]
   }
 }
 
@@ -151,4 +167,17 @@ resource "aws_lambda_event_source_mapping" "autospotting_lambda_event_source_map
   event_source_arn = aws_sqs_queue.autospotting_fifo_queue.arn
   function_name    = aws_lambda_function.autospotting.arn
   depends_on       = [aws_iam_role_policy.autospotting_policy_lambda]
+}
+
+
+resource "aws_sns_topic" "email_notification" {
+  name = "email_notifications_${module.label.id}"
+}
+
+resource "aws_sns_topic_subscription" "email_subscription" {
+  for_each = toset(var.notify_email_addresses)
+
+  topic_arn = aws_sns_topic.email_notification.arn
+  protocol  = "email"
+  endpoint  = each.value
 }

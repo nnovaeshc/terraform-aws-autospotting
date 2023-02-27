@@ -23,6 +23,11 @@ module "vpc" {
 
 resource "aws_ecs_cluster" "autospotting" {
   name               = "autospotting-${module.label.id}"
+}
+
+resource "aws_ecs_cluster_capacity_providers" "example" {
+  cluster_name = aws_ecs_cluster.autospotting.name
+
   capacity_providers = ["FARGATE"]
   default_capacity_provider_strategy {
     capacity_provider = "FARGATE"
@@ -41,7 +46,10 @@ module "ecs-task-definition" {
   cloudwatch_log_group_name = aws_cloudwatch_log_group.autospotting.name
 
   task_container_environment = {
-    "BILLING_ONLY" = "true"
+    "AUTOMATED_INSTANCE_DATA_UPDATE" = var.automated_instance_data_update
+    "BILLING_ONLY"                   = "true"
+    "NOTIFICATION_SNS_TOPIC"         = aws_sns_topic.email_notification.arn
+    "SAVINGS_REPORTS_FREQUENCY"      = var.autospotting_savings_reports_frequency
   }
 }
 

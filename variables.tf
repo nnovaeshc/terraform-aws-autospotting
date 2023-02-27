@@ -12,6 +12,53 @@ EOF
   default     = ""
 }
 
+variable "autospotting_allow_parallel_instance_replacements" {
+  type        = string
+  description = <<EOF
+    Controls whether AutoSpotting should allow parallel instance replacements
+    or force them to happen in sequence. This is by default disabled because
+    it may require the increase of the Maximum capacity of the autoscaling
+    group to double the desired capacity, and/or service quota increases for
+    EC2 instances.
+  EOF
+  default     = "true"
+  validation {
+    condition     = contains(["true", "false"], var.autospotting_allow_parallel_instance_replacements)
+    error_message = "Valid value is one of the following: true, false."
+  }
+}
+
+variable "autospotting_automated_instance_data_update" {
+  description = <<EOF
+    Controls whether AutoSpotting should automatically update its embedded
+    instance type data. This doesn't bring benefits for recently released
+    builds and is slowing down the Lambda execution, but it may be useful
+    later if you want to add support for newer instance types without
+    updating AutoSpotting.
+  EOF
+  type        = string
+  default     = "false"
+  validation {
+    condition     = contains(["true", "false"], var.autospotting_automated_instance_data_update)
+    error_message = "Valid value is one of the following: true, false."
+  }
+}
+
+variable "autospotting_consider_ebs_bandwidth" {
+  type        = string
+  description = <<EOF
+    Controls whether AutoSpotting considers EBS Bandwidth when comparing
+    instance types in order to determine compatibility with other instance
+    types, default: false. Enabling this flag will reduce diversfication
+    to only instance types offering at least as much EBS bandwidth as the
+    initial instance type.
+  EOF
+  default     = "false"
+  validation {
+    condition     = contains(["true", "false"], var.autospotting_consider_ebs_bandwidth)
+    error_message = "Valid value is one of the following: true, false."
+  }
+}
 
 variable "autospotting_cron_schedule_state" {
   description = <<EOF
@@ -55,13 +102,6 @@ EOF
   default     = "UTC"
 }
 
-variable "autospotting_disable_event_based_instance_replacement" {
-  description = <<EOF
-  Disables the event based instance replacement, forcing AutoSpotting to run in
-  legacy cron mode.
-  EOF
-  default     = "false"
-}
 
 variable "autospotting_disable_instance_rebalance_recommendation" {
   description = <<EOF
@@ -83,6 +123,10 @@ variable "autospotting_disable_instance_rebalance_recommendation" {
   instances per AZ, to avoid multiple instance replacements in parallel.
   EOF
   default     = "false"
+  validation {
+    condition     = can(regex("^(true|false)$", var.autospotting_disable_instance_rebalance_recommendation))
+    error_message = "Allowed values are 'true' or 'false'"
+  }
 }
 
 variable "autospotting_disallowed_instance_types" {
@@ -105,6 +149,27 @@ variable "autospotting_ebs_gp2_conversion_threshold" {
   EOF
   default     = 170
 }
+
+variable "notify_email_addresses" {
+  description = <<EOF
+    Addresses to receive notifications for AutoSpotting actions and savings reports.
+  EOF
+  type        = list(string)
+}
+
+variable "autospotting_enable_instance_rebalance_recommendation" {
+  description = <<EOF
+    Enables handling of instance rebalance recommendation events.
+  EOF
+  type        = string
+  default     = "false"
+  validation {
+    condition     = contains(["true", "false"], var.autospotting_enable_instance_rebalance_recommendation)
+    error_message = "Valid value is one of the following: true, false."
+  }
+}
+
+
 
 variable "autospotting_instance_termination_method" {
   description = <<EOF
@@ -144,6 +209,54 @@ EOF
   type        = bool
   default     = false
 }
+
+variable "autospotting_prioritized_instance_types_bias" {
+  description = <<EOF
+    Controls the ordering of instance types when using the capacity-optimized-prioritized
+    Spot allocation strategy. By default, using the 'lowest_price' bias it sorts instances by
+    Spot price, giving a softer preference than the 'lowest_price' Spot allocation strategy.
+    Alternatively, you can prefer newer instance types by using the 'prefer_newer_generations'
+    bias, which still orders instance types by price but penalizes instances from older
+    generations by adding 10% to their hourly price for each older generation when considering
+    them for the sorted list. For example, a C5 instance type will be penalized by 10% over C6i,
+    while a C4 will be penalized by 20%.
+  EOF
+  type        = string
+  default     = "prefer_newer_generations"
+  validation {
+    condition     = contains(["prefer_newer_generations", "lowest_price"], var.autospotting_prioritized_instance_types_bias)
+    error_message = "Valid value is one of the following: prefer_newer_generations, lowest_price."
+  }
+}
+
+variable "autospotting_savings_reports_frequency" {
+  type        = string
+  description = <<EOF
+    Controls the frequency of the saving reports. Defaults to sending them daily.
+    EOF
+  validation {
+    condition     = contains(["daily", "weekly", "monthly", "never"], var.autospotting_savings_reports_frequency)
+    error_message = "Valid value is one of the following: daily, weekly, monthly, never."
+  }
+  default = "daily"
+}
+
+variable "autospotting_spot_allocation_strategy" {
+  type        = string
+  description = <<EOF
+    Controls the Spot allocation strategy for launching Spot instances.
+    Allowed options:
+    'capacity-optimized-prioritized' (default), 'capacity-optimized',
+    'lowest-price'. Further information on this is available at
+    https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-allocation-strategy.html"
+    EOF
+  validation {
+    condition     = contains(["capacity-optimized-prioritized", "capacity-optimized", "lowest-price"], var.autospotting_spot_allocation_strategy)
+    error_message = "Valid value is one of the following: capacity-optimized-prioritized, capacity-optimized, lowest-price."
+  }
+  default = "capacity-optimized-prioritized"
+}
+
 
 variable "autospotting_spot_product_description" {
   description = <<EOF
@@ -218,21 +331,7 @@ EOF
   default     = "opt-in"
 }
 
-variable "autospotting_license" {
-  description = <<EOF
-Autospotting License code. Allowed options are:
-'evaluation', 'I_am_supporting_it_on_Patreon',
-'I_contributed_to_development_within_the_last_year',
-'I_built_it_from_source_code'
-EOF
-  default     = "evaluation"
-}
-
 # Lambda configuration
-variable "lambda_zipname" {
-  description = "Name of the archive, relative to the module"
-  default     = null
-}
 
 variable "lambda_source_ecr" {
   description = <<EOF
@@ -253,13 +352,25 @@ variable "lambda_source_image" {
 
 variable "lambda_source_image_tag" {
   description = "The version of the Docker image used for the Lambda function"
-  default     = "1.0.8-rc3"
+  default     = "stable-1.1.2-4"
 }
 
 
 variable "lambda_memory_size" {
   description = "Memory size allocated to the lambda run"
-  default     = 1024
+  default     = 512
+}
+
+variable "lambda_cpu_architecture" {
+  description = <<EOF
+    The CPU architecture to use for running the AutoSpotting Docker image.
+  EOF
+  type        = string
+  default     = "x86_64"
+  validation {
+    condition     = contains(["arm64", "x86_64"], var.lambda_cpu_architecture)
+    error_message = "Valid value is one of the following: arm64, x86_64."
+  }
 }
 
 variable "lambda_timeout" {
@@ -269,7 +380,7 @@ variable "lambda_timeout" {
 
 variable "lambda_run_frequency" {
   description = "How frequent should lambda run"
-  default     = "rate(5 minutes)"
+  default     = "rate(30 minutes)"
 }
 
 variable "lambda_tags" {
