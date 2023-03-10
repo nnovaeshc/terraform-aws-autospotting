@@ -125,7 +125,7 @@ variable "autospotting_disable_instance_rebalance_recommendation" {
   default     = "false"
   validation {
     condition     = can(regex("^(true|false)$", var.autospotting_disable_instance_rebalance_recommendation))
-    error_message = "Allowed values are 'true' or 'false'"
+    error_message = "Allowed values are 'true' or 'false'."
   }
 }
 
