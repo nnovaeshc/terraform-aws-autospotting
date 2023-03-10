@@ -97,6 +97,31 @@ variable "notify_email_addresses" {
 }
 
 
+variable "use_existing_iam_role" {
+  description = "Boolean flag to indicate whether to use an existing IAM role or create a new one for the Lambda function"
+  type        = bool
+  default     = false
+}
+variable "existing_iam_role_arn" {
+  description = "ARN of an existing IAM role to use for the Lambda function"
+  type        = string
+  default     = ""
+}
+
+
+variable "use_existing_subnets" {
+  description = "Boolean flag to indicate whether to use existing subnets or create new ones for the Lambda function"
+  type        = bool
+  default     = false
+}
+
+variable "existing_subnets" {
+  description = "List of existing subnets to use for the Lambda function"
+  type        = list(string)
+  default     = []
+}
+
+
 # Label configuration
 variable "label_context" {
   description = "Used to pass in label module context"

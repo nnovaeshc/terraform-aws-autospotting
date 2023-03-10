@@ -4,7 +4,32 @@ module "label" {
   enabled = true
 }
 
-data "aws_regions" "current" {}
+data "aws_arn" "role_arn" {
+  count = var.use_existing_iam_role ? 1 : 0
+  arn   = var.existing_iam_role_arn
+
+}
+
+data "aws_iam_role" "existing" {
+  count = var.use_existing_iam_role ? 1 : 0
+  name  = split("/", data.aws_arn.role_arn[0].resource)[1]
+}
+
+data "aws_subnet" "existing" {
+  count = length(var.existing_subnets)
+  id    = var.existing_subnets[count.index]
+}
+
+data "aws_regions" "current" {
+
+  lifecycle {
+    # The list of subnets should not be empty
+    postcondition {
+      condition     = var.use_existing_subnets && length(var.existing_subnets) != 0
+      error_message = "The list of subnets should not be empty."
+    }
+  }
+}
 
 locals {
   all_regions = data.aws_regions.current.names
@@ -58,6 +83,11 @@ module "aws_lambda_function" {
   autospotting_tag_filtering_mode                       = var.autospotting_tag_filtering_mode
   autospotting_tag_filters                              = var.autospotting_tag_filters
   autospotting_termination_notification_action          = var.autospotting_termination_notification_action
+
+  use_existing_iam_role = var.use_existing_iam_role
+  existing_iam_role_arn = data.aws_arn.role_arn[0].arn
+  use_existing_subnets  = var.use_existing_subnets
+  existing_subnets      = var.existing_subnets
 }
 
 # Regional resources that trigger the main Lambda function

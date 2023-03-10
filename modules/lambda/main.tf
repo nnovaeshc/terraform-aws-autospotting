@@ -14,11 +14,16 @@ module "label" {
 
 data "aws_caller_identity" "current" {}
 
+data "aws_arn" "role_arn" {
+  count = var.use_existing_iam_role ? 1 : 0
+  arn   = var.existing_iam_role_arn
+}
+
 resource "aws_lambda_function" "autospotting" {
   function_name = "autospotting-lambda-${module.label.id}"
   package_type  = "Image"
   image_uri     = "${aws_ecr_repository.autospotting.repository_url}:${var.lambda_source_image_tag}"
-  role          = aws_iam_role.autospotting_role.arn
+  role          = var.use_existing_iam_role ? data.aws_arn.role_arn[0].arn : aws_iam_role.autospotting_role[0].arn
   timeout       = var.lambda_timeout
   memory_size   = var.lambda_memory_size
   tags          = merge(var.lambda_tags, module.label.tags)
@@ -71,6 +76,7 @@ data "aws_iam_policy_document" "lambda_policy" {
 }
 
 resource "aws_iam_role" "autospotting_role" {
+  count                 = var.use_existing_iam_role ? 0 : 1
   name                  = "autospotting-role-${module.label.id}"
   path                  = "/lambda/"
   assume_role_policy    = data.aws_iam_policy_document.lambda_policy.json
@@ -78,6 +84,7 @@ resource "aws_iam_role" "autospotting_role" {
 }
 
 data "aws_iam_policy_document" "autospotting_policy" {
+  count = var.use_existing_iam_role ? 0 : 1
   statement {
     actions = [
       "autoscaling:AttachInstances",
@@ -144,15 +151,17 @@ data "aws_iam_policy_document" "autospotting_policy" {
 }
 
 resource "aws_iam_role_policy" "autospotting_policy_lambda" {
+  count  = var.use_existing_iam_role ? 0 : 1
   name   = "policy_for_lambda_${module.label.id}"
-  role   = aws_iam_role.autospotting_role.id
-  policy = data.aws_iam_policy_document.autospotting_policy.json
+  role   = aws_iam_role.autospotting_role[count.index].id
+  policy = data.aws_iam_policy_document.autospotting_policy[count.index].json
 }
 
 resource "aws_iam_role_policy" "autospotting_policy_fargate" {
+  count  = var.use_existing_iam_role ? 0 : 1
   name   = "policy_for_fargate_${module.label.id}"
-  role   = module.ecs-task-definition.task_role_id
-  policy = data.aws_iam_policy_document.autospotting_policy.json
+  role   = aws_iam_role.autospotting_task_execution[0].id
+  policy = data.aws_iam_policy_document.autospotting_policy[count.index].json
 }
 
 resource "aws_sqs_queue" "autospotting_fifo_queue" {
@@ -163,11 +172,19 @@ resource "aws_sqs_queue" "autospotting_fifo_queue" {
   visibility_timeout_seconds  = 300
 }
 
-resource "aws_lambda_event_source_mapping" "autospotting_lambda_event_source_mapping" {
+resource "aws_lambda_event_source_mapping" "autospotting_lambda_event_source_mapping_new_role" {
+  count            = var.use_existing_iam_role ? 0 : 1
   event_source_arn = aws_sqs_queue.autospotting_fifo_queue.arn
   function_name    = aws_lambda_function.autospotting.arn
   depends_on       = [aws_iam_role_policy.autospotting_policy_lambda]
 }
+
+resource "aws_lambda_event_source_mapping" "autospotting_lambda_event_source_mapping_existing_role" {
+  count            = var.use_existing_iam_role ? 1 : 0
+  event_source_arn = aws_sqs_queue.autospotting_fifo_queue.arn
+  function_name    = aws_lambda_function.autospotting.arn
+}
+
 
 
 resource "aws_sns_topic" "email_notification" {
