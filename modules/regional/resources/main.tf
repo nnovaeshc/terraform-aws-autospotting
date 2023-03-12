@@ -7,35 +7,26 @@ terraform {
   }
 }
 
+data "aws_region" "current" {}
+
+data "aws_arn" "autospotting_lambda_arn" {
+  arn = var.autospotting_lambda_arn
+}
+locals {
+  main_region = data.aws_arn.autospotting_lambda_arn.region
+  account_id  = data.aws_arn.autospotting_lambda_arn.account
+  partition   = data.aws_arn.autospotting_lambda_arn.partition
+}
+
+data "aws_arn" "main_region_eventbridge_default_bus" {
+  arn = "arn:${local.partition}:events:${local.main_region}:${local.account_id}:event-bus/default"
+}
+
 module "label" {
   source  = "git::https://github.com/cloudposse/terraform-null-label.git?ref=0.25.0"
   context = var.label_context
 }
 
-# Lambda function
-data "archive_file" "lambda_zip" {
-  type        = "zip"
-  output_path = "${path.module}/lambda.zip"
-  source_file = "${path.module}/handler.py"
-}
-
-resource "aws_lambda_function" "regional_lambda" {
-  filename      = data.archive_file.lambda_zip.output_path
-  function_name = "autospotting_regional_lambda_${module.label.id}"
-  role          = var.lambda_iam_role.arn
-  handler       = "handler.handler"
-
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-
-  runtime = "python3.8"
-  timeout = 300
-
-  environment {
-    variables = {
-      AUTOSPOTTING_LAMBDA_ARN = var.autospotting_lambda_arn
-    }
-  }
-}
 
 # Event rule for capturing Spot events: termination and rebalancing
 resource "aws_cloudwatch_event_rule" "autospotting_regional_ec2_spot_event_capture" {
@@ -56,16 +47,11 @@ PATTERN
 }
 
 resource "aws_cloudwatch_event_target" "autospotting_regional_ec2_spot_event_capture" {
-  rule = aws_cloudwatch_event_rule.autospotting_regional_ec2_spot_event_capture.name
-  arn  = aws_lambda_function.regional_lambda.arn
+  rule     = aws_cloudwatch_event_rule.autospotting_regional_ec2_spot_event_capture.name
+  arn      = data.aws_region.current.name == local.main_region ? var.autospotting_lambda_arn : data.aws_arn.main_region_eventbridge_default_bus.arn
+  role_arn = data.aws_region.current.name == local.main_region ? "" : var.put_event_role_arn
 }
 
-resource "aws_lambda_permission" "autospotting_regional_ec2_spot_event_capture" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.regional_lambda.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.autospotting_regional_ec2_spot_event_capture.arn
-}
 
 
 # Event rule for capturing Instance launch events
@@ -91,16 +77,12 @@ PATTERN
 }
 
 resource "aws_cloudwatch_event_target" "autospotting_regional_ec2_instance_launch_event_capture" {
-  rule = aws_cloudwatch_event_rule.autospotting_regional_ec2_instance_launch_event_capture.name
-  arn  = aws_lambda_function.regional_lambda.arn
+  rule     = aws_cloudwatch_event_rule.autospotting_regional_ec2_instance_launch_event_capture.name
+  arn      = data.aws_region.current.name == local.main_region ? var.autospotting_lambda_arn : data.aws_arn.main_region_eventbridge_default_bus.arn
+  role_arn = data.aws_region.current.name == local.main_region ? "" : var.put_event_role_arn
 }
 
-resource "aws_lambda_permission" "autospotting_regional_ec2_instance_launch_event_capture" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.regional_lambda.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.autospotting_regional_ec2_instance_launch_event_capture.arn
-}
+
 
 # Event rule for capturing AutoScaling Lifecycle Hook events
 resource "aws_cloudwatch_event_rule" "autospotting_regional_autoscaling_lifecycle_hook_event_capture" {
@@ -133,24 +115,8 @@ PATTERN
 }
 
 resource "aws_cloudwatch_event_target" "autospotting_regional_autoscaling_lifecycle_hook_event_capture" {
-  rule = aws_cloudwatch_event_rule.autospotting_regional_autoscaling_lifecycle_hook_event_capture.name
-  arn  = aws_lambda_function.regional_lambda.arn
+  rule     = aws_cloudwatch_event_rule.autospotting_regional_autoscaling_lifecycle_hook_event_capture.name
+  arn      = data.aws_region.current.name == local.main_region ? var.autospotting_lambda_arn : data.aws_arn.main_region_eventbridge_default_bus.arn
+  role_arn = data.aws_region.current.name == local.main_region ? "" : var.put_event_role_arn
 }
 
-resource "aws_lambda_permission" "autospotting_regional_autoscaling_lifecycle_hook_event_capture" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.regional_lambda.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.autospotting_regional_autoscaling_lifecycle_hook_event_capture.arn
-}
-
-
-resource "aws_cloudwatch_log_group" "log_group" {
-  name              = "/aws/lambda/${aws_lambda_function.regional_lambda.function_name}"
-  retention_in_days = var.log_retention_period
-
-  # retain log group on stack update and delete
-  lifecycle {
-    prevent_destroy = false
-  }
-}

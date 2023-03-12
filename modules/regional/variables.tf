@@ -1,5 +1,6 @@
 
 variable "autospotting_lambda_arn" {}
+variable "put_event_role_arn" {}
 variable "regions" {
   description = "Regions to handle"
   type        = list(string)

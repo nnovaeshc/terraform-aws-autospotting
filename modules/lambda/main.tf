@@ -13,10 +13,15 @@ module "label" {
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 data "aws_arn" "role_arn" {
   count = var.use_existing_iam_role ? 1 : 0
   arn   = var.existing_iam_role_arn
+}
+
+data "aws_arn" "lambda_function_arn" {
+  arn = aws_lambda_function.autospotting.arn
 }
 
 resource "aws_lambda_function" "autospotting" {
@@ -185,8 +190,6 @@ resource "aws_lambda_event_source_mapping" "autospotting_lambda_event_source_map
   function_name    = aws_lambda_function.autospotting.arn
 }
 
-
-
 resource "aws_sns_topic" "email_notification" {
   name = "email_notifications_${module.label.id}"
 }
@@ -198,3 +201,4 @@ resource "aws_sns_topic_subscription" "email_subscription" {
   protocol  = "email"
   endpoint  = each.value
 }
+

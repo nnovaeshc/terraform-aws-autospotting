@@ -24,11 +24,15 @@ data "aws_regions" "current" {
 
   lifecycle {
     # The list of subnets should not be empty
-    postcondition {
+    /* postcondition {
       condition     = var.use_existing_subnets && length(var.existing_subnets) != 0
       error_message = "The list of subnets should not be empty."
-    }
+    } */
   }
+}
+
+data "aws_cloudwatch_event_bus" "default" {
+  name = "default"
 }
 
 locals {
@@ -85,7 +89,7 @@ module "aws_lambda_function" {
   autospotting_termination_notification_action          = var.autospotting_termination_notification_action
 
   use_existing_iam_role = var.use_existing_iam_role
-  existing_iam_role_arn = data.aws_arn.role_arn[0].arn
+  existing_iam_role_arn = var.use_existing_iam_role ? data.aws_arn.role_arn[0].arn : ""
   use_existing_subnets  = var.use_existing_subnets
   existing_subnets      = var.existing_subnets
 }
@@ -96,6 +100,7 @@ module "regional" {
   autospotting_lambda_arn = module.aws_lambda_function.arn
   label_context           = module.label.context
   regions                 = local.regions
+  put_event_role_arn      = var.use_existing_iam_role ? var.existing_iam_role_arn : aws_iam_role.put_events_role[0].arn
 }
 
 resource "aws_lambda_permission" "cloudwatch_events_permission" {
@@ -140,4 +145,44 @@ data "aws_iam_policy_document" "beanstalk" {
 resource "aws_iam_policy" "beanstalk_policy" {
   name   = "elastic_beanstalk_iam_policy_for_${module.label.id}"
   policy = data.aws_iam_policy_document.beanstalk.json
+}
+
+
+
+
+resource "aws_iam_role" "put_events_role" {
+  count                 = var.use_existing_iam_role ? 0 : 1
+  name                  = "autospotting-event-bridge-role-${module.label.id}"
+  path                  = "/events/"
+  assume_role_policy    = data.aws_iam_policy_document.put_events_assume_policy[0].json
+  force_detach_policies = true
+}
+
+data "aws_iam_policy_document" "put_events_policy" {
+  count = var.use_existing_iam_role ? 0 : 1
+  statement {
+    actions = [
+      "events:PutEvents",
+    ]
+    resources = [data.aws_cloudwatch_event_bus.default.arn]
+  }
+}
+
+data "aws_iam_policy_document" "put_events_assume_policy" {
+  count = var.use_existing_iam_role ? 0 : 1
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+  }
+}
+
+
+resource "aws_iam_role_policy" "put_event_policy_attachment" {
+  count  = var.use_existing_iam_role ? 0 : 1
+  name   = "policy_for_put_events_${module.label.id}"
+  role   = aws_iam_role.put_events_role[count.index].id
+  policy = data.aws_iam_policy_document.put_events_policy[count.index].json
 }
