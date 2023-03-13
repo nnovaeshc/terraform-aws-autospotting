@@ -52,7 +52,13 @@ resource "aws_cloudwatch_event_target" "autospotting_regional_ec2_spot_event_cap
   role_arn = data.aws_region.current.name == local.main_region ? "" : var.put_event_role_arn
 }
 
-
+resource "aws_lambda_permission" "autospotting_regional_ec2_spot_event_capture" {
+  count         = data.aws_region.current.name == local.main_region ? 1 : 0
+  action        = "lambda:InvokeFunction"
+  function_name = var.autospotting_lambda_arn
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.autospotting_regional_ec2_spot_event_capture.arn
+}
 
 # Event rule for capturing Instance launch events
 resource "aws_cloudwatch_event_rule" "autospotting_regional_ec2_instance_launch_event_capture" {
@@ -82,6 +88,13 @@ resource "aws_cloudwatch_event_target" "autospotting_regional_ec2_instance_launc
   role_arn = data.aws_region.current.name == local.main_region ? "" : var.put_event_role_arn
 }
 
+resource "aws_lambda_permission" "autospotting_regional_ec2_instance_launch_event_capture" {
+  count         = data.aws_region.current.name == local.main_region ? 1 : 0
+  action        = "lambda:InvokeFunction"
+  function_name = var.autospotting_lambda_arn
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.autospotting_regional_ec2_instance_launch_event_capture.arn
+}
 
 
 # Event rule for capturing AutoScaling Lifecycle Hook events
@@ -120,3 +133,10 @@ resource "aws_cloudwatch_event_target" "autospotting_regional_autoscaling_lifecy
   role_arn = data.aws_region.current.name == local.main_region ? "" : var.put_event_role_arn
 }
 
+resource "aws_lambda_permission" "autospotting_regional_autoscaling_lifecycle_hook_event_capture" {
+  count         = data.aws_region.current.name == local.main_region ? 1 : 0
+  action        = "lambda:InvokeFunction"
+  function_name = var.autospotting_lambda_arn
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.autospotting_regional_autoscaling_lifecycle_hook_event_capture.arn
+}
