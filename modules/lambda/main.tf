@@ -181,12 +181,14 @@ resource "aws_lambda_event_source_mapping" "autospotting_lambda_event_source_map
   count            = var.use_existing_iam_role ? 0 : 1
   event_source_arn = aws_sqs_queue.autospotting_fifo_queue.arn
   function_name    = aws_lambda_function.autospotting.arn
+  batch_size       = 1
   depends_on       = [aws_iam_role_policy.autospotting_policy_lambda]
 }
 
 resource "aws_lambda_event_source_mapping" "autospotting_lambda_event_source_mapping_existing_role" {
   count            = var.use_existing_iam_role ? 1 : 0
   event_source_arn = aws_sqs_queue.autospotting_fifo_queue.arn
+  batch_size       = 1
   function_name    = aws_lambda_function.autospotting.arn
 }
 
