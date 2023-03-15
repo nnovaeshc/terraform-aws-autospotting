@@ -1,4 +1,9 @@
 
+locals {
+  task_role_arn      = var.use_existing_iam_role ? data.aws_arn.role_arn[0].arn : aws_iam_role.autospotting_task_execution[0].arn
+  execution_role_arn = var.use_existing_iam_role ? data.aws_arn.role_arn[0].arn : aws_iam_role.autospotting_task_execution[0].arn
+}
+
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -97,19 +102,90 @@ resource "aws_cloudwatch_log_group" "autospotting" {
   retention_in_days = 7
 }
 
-module "ecs-fargate-scheduled-task" {
-  source  = "umotif-public/ecs-fargate-scheduled-task/aws"
-  version = "~> 1.0.0"
 
-  name_prefix = module.label.id
+#####
+# Cloudwatch event IAM Role
+#####
+resource "aws_iam_role" "scheduled_task_event_role" {
+  name = "${module.label.id}-task-event-role"
 
-  ecs_cluster_arn = aws_ecs_cluster.autospotting.arn
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Principal = {
+          Service = "events.amazonaws.com"
+        }
+        Effect = "Allow"
+        Sid    = ""
+      }
+    ]
+  })
 
-  task_role_arn      = var.use_existing_iam_role ? data.aws_arn.role_arn[0].arn : aws_iam_role.autospotting_task_execution[0].arn
-  execution_role_arn = var.use_existing_iam_role ? data.aws_arn.role_arn[0].arn : aws_iam_role.autospotting_task_execution[0].arn
+}
 
-  event_target_task_definition_arn = aws_ecs_task_definition.autospotting_task_definition.arn
-  event_rule_schedule_expression   = "rate(1 hour)"
-  event_target_subnets             = var.use_existing_subnets ? var.existing_subnets : module.vpc.public_subnets
-  event_target_assign_public_ip    = true
+resource "aws_iam_role_policy" "scheduled_task_event_role_policy" {
+  name   = "${module.label.id}-task-event-role-policy"
+  role   = aws_iam_role.scheduled_task_event_role.id
+  policy = data.aws_iam_policy_document.scheduled_task_event_role_policy_document.json
+}
+
+#####
+# Cloudwatch event rule and target
+#####
+resource "aws_cloudwatch_event_rule" "event_rule" {
+  name                = "${module.label.id}-rule"
+  description         = ""
+  schedule_expression = "rate(1 hour)"
+  role_arn            = null
+  is_enabled          = true
+
+  tags = {
+    Name = "${module.label.id}-rule"
+  }
+}
+
+resource "aws_cloudwatch_event_target" "ecs_scheduled_task" {
+  rule = aws_cloudwatch_event_rule.event_rule.name
+
+  target_id  = null
+  arn        = aws_ecs_cluster.autospotting.arn
+  input      = null
+  input_path = null
+  role_arn   = aws_iam_role.scheduled_task_event_role.arn
+
+  ecs_target {
+    task_definition_arn = aws_ecs_task_definition.autospotting_task_definition.arn
+    task_count          = 1
+    platform_version    = "LATEST"
+    launch_type         = "FARGATE"
+    group               = null
+
+    network_configuration {
+      subnets          = var.use_existing_subnets ? var.existing_subnets : module.vpc.public_subnets
+      security_groups  = []
+      assign_public_ip = true
+    }
+  }
+}
+
+data "aws_iam_policy_document" "scheduled_task_event_role_policy_document" {
+  statement {
+    sid    = "AllowECSRunTask"
+    effect = "Allow"
+
+    actions = ["ecs:RunTask"]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowIAMPassRole"
+    effect = "Allow"
+
+    actions = ["iam:PassRole"]
+
+    resources = local.execution_role_arn == "" ? [local.task_role_arn] : [local.task_role_arn, local.execution_role_arn]
+  }
 }
