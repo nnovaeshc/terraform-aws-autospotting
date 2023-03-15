@@ -2,6 +2,10 @@ variable "autospotting_lambda_arn" {}
 
 variable "put_event_role_arn" {}
 
+variable "event_bus_arn" {}
+
+variable "main_region" {}
+
 variable "log_retention_period" {
   description = "Number of days to keep the Lambda function logs in CloudWatch."
   default     = 7

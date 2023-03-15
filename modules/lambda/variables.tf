@@ -70,6 +70,12 @@ variable "lambda_memory_size" {}
 variable "lambda_source_ecr" {}
 variable "lambda_source_image" {}
 variable "lambda_source_image_tag" {}
+
+variable "lambda_use_public_ecr" {
+  type        = bool
+  description = "Use a public ECR repo"
+}
+
 variable "sqs_fifo_queue_name" {}
 
 variable "lambda_tags" {
@@ -121,6 +127,10 @@ variable "existing_subnets" {
   default     = []
 }
 
+variable "permissions_boundary_arn" {
+  description = "ARN of a permissions boundary resource"
+  type        = string
+}
 
 # Label configuration
 variable "label_context" {
@@ -158,4 +168,5 @@ variable "label_context" {
     label_value_case    = "lower"
   }
 }
+
 

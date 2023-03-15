@@ -5,6 +5,7 @@ locals {
 resource "aws_ecr_repository" "autospotting" {
   name                 = "autospotting-${module.label.id}"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
@@ -15,16 +16,22 @@ resource "aws_ecr_repository" "autospotting" {
 }
 
 data "aws_ecr_authorization_token" "source" {
-  registry_id = split(".", var.lambda_source_ecr)[0]
+  count       = var.lambda_use_public_ecr ? 0 : 1
+  registry_id = var.lambda_use_public_ecr ? null : split(".", var.lambda_source_ecr)[0]
 }
+
+data "aws_ecrpublic_authorization_token" "source" {
+  count = var.lambda_use_public_ecr ? 1 : 0
+}
+
 
 data "aws_ecr_authorization_token" "destination" {}
 
 provider "docker" {
   registry_auth {
     address  = var.lambda_source_ecr
-    username = data.aws_ecr_authorization_token.source.user_name
-    password = data.aws_ecr_authorization_token.source.password
+    username = var.lambda_use_public_ecr ? data.aws_ecrpublic_authorization_token.source[0].user_name : data.aws_ecr_authorization_token.source[0].user_name
+    password = var.lambda_use_public_ecr ? data.aws_ecrpublic_authorization_token.source[0].password : data.aws_ecr_authorization_token.source[0].password
   }
   registry_auth {
     address  = split("/", aws_ecr_repository.autospotting.repository_url)[0]

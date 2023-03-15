@@ -12,15 +12,7 @@ data "aws_region" "current" {}
 data "aws_arn" "autospotting_lambda_arn" {
   arn = var.autospotting_lambda_arn
 }
-locals {
-  main_region = data.aws_arn.autospotting_lambda_arn.region
-  account_id  = data.aws_arn.autospotting_lambda_arn.account
-  partition   = data.aws_arn.autospotting_lambda_arn.partition
-}
 
-data "aws_arn" "main_region_eventbridge_default_bus" {
-  arn = "arn:${local.partition}:events:${local.main_region}:${local.account_id}:event-bus/default"
-}
 
 module "label" {
   source  = "git::https://github.com/cloudposse/terraform-null-label.git?ref=0.25.0"
@@ -48,14 +40,14 @@ PATTERN
 
 resource "aws_cloudwatch_event_target" "autospotting_regional_ec2_spot_event_capture" {
   rule     = aws_cloudwatch_event_rule.autospotting_regional_ec2_spot_event_capture.name
-  arn      = data.aws_region.current.name == local.main_region ? var.autospotting_lambda_arn : data.aws_arn.main_region_eventbridge_default_bus.arn
-  role_arn = data.aws_region.current.name == local.main_region ? "" : var.put_event_role_arn
+  arn      = data.aws_region.current.name == var.main_region ? data.aws_arn.autospotting_lambda_arn.arn : var.event_bus_arn
+  role_arn = data.aws_region.current.name == var.main_region ? "" : var.put_event_role_arn
 }
 
 resource "aws_lambda_permission" "autospotting_regional_ec2_spot_event_capture" {
-  count         = data.aws_region.current.name == local.main_region ? 1 : 0
+  count         = data.aws_region.current.name == var.main_region ? 1 : 0
   action        = "lambda:InvokeFunction"
-  function_name = var.autospotting_lambda_arn
+  function_name = data.aws_arn.autospotting_lambda_arn.arn
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.autospotting_regional_ec2_spot_event_capture.arn
 }
@@ -84,14 +76,14 @@ PATTERN
 
 resource "aws_cloudwatch_event_target" "autospotting_regional_ec2_instance_launch_event_capture" {
   rule     = aws_cloudwatch_event_rule.autospotting_regional_ec2_instance_launch_event_capture.name
-  arn      = data.aws_region.current.name == local.main_region ? var.autospotting_lambda_arn : data.aws_arn.main_region_eventbridge_default_bus.arn
-  role_arn = data.aws_region.current.name == local.main_region ? "" : var.put_event_role_arn
+  arn      = data.aws_region.current.name == var.main_region ? data.aws_arn.autospotting_lambda_arn.arn : var.event_bus_arn
+  role_arn = data.aws_region.current.name == var.main_region ? "" : var.put_event_role_arn
 }
 
 resource "aws_lambda_permission" "autospotting_regional_ec2_instance_launch_event_capture" {
-  count         = data.aws_region.current.name == local.main_region ? 1 : 0
+  count         = data.aws_region.current.name == var.main_region ? 1 : 0
   action        = "lambda:InvokeFunction"
-  function_name = var.autospotting_lambda_arn
+  function_name = data.aws_arn.autospotting_lambda_arn.arn
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.autospotting_regional_ec2_instance_launch_event_capture.arn
 }
@@ -129,14 +121,14 @@ PATTERN
 
 resource "aws_cloudwatch_event_target" "autospotting_regional_autoscaling_lifecycle_hook_event_capture" {
   rule     = aws_cloudwatch_event_rule.autospotting_regional_autoscaling_lifecycle_hook_event_capture.name
-  arn      = data.aws_region.current.name == local.main_region ? var.autospotting_lambda_arn : data.aws_arn.main_region_eventbridge_default_bus.arn
-  role_arn = data.aws_region.current.name == local.main_region ? "" : var.put_event_role_arn
+  arn      = data.aws_region.current.name == var.main_region ? data.aws_arn.autospotting_lambda_arn.arn : var.event_bus_arn
+  role_arn = data.aws_region.current.name == var.main_region ? "" : var.put_event_role_arn
 }
 
 resource "aws_lambda_permission" "autospotting_regional_autoscaling_lifecycle_hook_event_capture" {
-  count         = data.aws_region.current.name == local.main_region ? 1 : 0
+  count         = data.aws_region.current.name == var.main_region ? 1 : 0
   action        = "lambda:InvokeFunction"
-  function_name = var.autospotting_lambda_arn
+  function_name = data.aws_arn.autospotting_lambda_arn.arn
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.autospotting_regional_autoscaling_lifecycle_hook_event_capture.arn
 }

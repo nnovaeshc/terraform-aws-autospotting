@@ -32,6 +32,7 @@ resource "aws_lambda_function" "autospotting" {
   timeout       = var.lambda_timeout
   memory_size   = var.lambda_memory_size
   tags          = merge(var.lambda_tags, module.label.tags)
+  architectures = ["arm64"]
 
   environment {
     variables = {
@@ -86,6 +87,7 @@ resource "aws_iam_role" "autospotting_role" {
   path                  = "/lambda/"
   assume_role_policy    = data.aws_iam_policy_document.lambda_policy.json
   force_detach_policies = true
+  permissions_boundary  = var.permissions_boundary_arn != "" ? var.permissions_boundary_arn : null
 }
 
 data "aws_iam_policy_document" "autospotting_policy" {

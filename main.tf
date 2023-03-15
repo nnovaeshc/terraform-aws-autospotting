@@ -7,8 +7,13 @@ module "label" {
 data "aws_arn" "role_arn" {
   count = var.use_existing_iam_role ? 1 : 0
   arn   = var.existing_iam_role_arn
-
 }
+
+data "aws_arn" "permissions_boundary" {
+  count = var.permissions_boundary_arn != "" ? 1 : 0
+  arn   = var.permissions_boundary_arn
+}
+
 
 data "aws_iam_role" "existing" {
   count = var.use_existing_iam_role ? 1 : 0
@@ -56,6 +61,7 @@ module "aws_lambda_function" {
   lambda_timeout          = var.lambda_timeout
   lambda_memory_size      = var.lambda_memory_size
   lambda_tags             = var.lambda_tags
+  lambda_use_public_ecr   = var.lambda_use_public_ecr
 
   sqs_fifo_queue_name    = "${module.label.id}.fifo"
   notify_email_addresses = var.notify_email_addresses
@@ -88,10 +94,11 @@ module "aws_lambda_function" {
   autospotting_tag_filters                              = var.autospotting_tag_filters
   autospotting_termination_notification_action          = var.autospotting_termination_notification_action
 
-  use_existing_iam_role = var.use_existing_iam_role
-  existing_iam_role_arn = var.use_existing_iam_role ? data.aws_arn.role_arn[0].arn : ""
-  use_existing_subnets  = var.use_existing_subnets
-  existing_subnets      = var.existing_subnets
+  use_existing_iam_role    = var.use_existing_iam_role
+  existing_iam_role_arn    = var.use_existing_iam_role ? data.aws_arn.role_arn[0].arn : ""
+  use_existing_subnets     = var.use_existing_subnets
+  existing_subnets         = var.existing_subnets
+  permissions_boundary_arn = var.permissions_boundary_arn
 }
 
 # Regional resources that trigger the main Lambda function
@@ -158,6 +165,7 @@ resource "aws_iam_role" "put_events_role" {
   path                  = "/events/"
   assume_role_policy    = data.aws_iam_policy_document.put_events_assume_policy[0].json
   force_detach_policies = true
+  permissions_boundary  = var.permissions_boundary_arn != "" ? data.aws_arn.permissions_boundary[0].arn : null
 }
 
 data "aws_iam_policy_document" "put_events_policy" {

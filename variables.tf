@@ -352,7 +352,7 @@ variable "lambda_source_image" {
 
 variable "lambda_source_image_tag" {
   description = "The version of the Docker image used for the Lambda function"
-  default     = "stable-1.1.2-4"
+  default     = "stable-1.1.3-1"
 }
 
 
@@ -372,6 +372,13 @@ variable "lambda_cpu_architecture" {
     error_message = "Valid value is one of the following: arm64, x86_64."
   }
 }
+
+variable "lambda_use_public_ecr" {
+  type        = bool
+  description = "Use a public ECR repo"
+  default     = false
+}
+
 
 variable "lambda_timeout" {
   description = "Timeout after which the lambda timeout"
@@ -438,6 +445,12 @@ variable "existing_iam_role_arn" {
   default     = ""
 }
 
+variable "permissions_boundary_arn" {
+  description = "ARN of a permissions boundary resource"
+  type        = string
+  default     = ""
+}
+
 
 variable "use_existing_subnets" {
   description = "Boolean flag to indicate whether to use existing subnets or create new ones for the Lambda function"
@@ -450,6 +463,4 @@ variable "existing_subnets" {
   type        = list(string)
   default     = []
 }
-
-
 
