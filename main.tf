@@ -130,6 +130,7 @@ resource "aws_cloudwatch_log_group" "log_group_autospotting" {
 # Elastic Beanstalk policy
 
 data "aws_iam_policy_document" "beanstalk" {
+  count = var.use_existing_iam_role ? 0 : 1
   statement {
     actions = [
       "cloudformation:DescribeStackResource",
@@ -143,8 +144,9 @@ data "aws_iam_policy_document" "beanstalk" {
 }
 
 resource "aws_iam_policy" "beanstalk_policy" {
+  count  = var.use_existing_iam_role ? 0 : 1
   name   = "elastic_beanstalk_iam_policy_for_${module.label.id}"
-  policy = data.aws_iam_policy_document.beanstalk.json
+  policy = data.aws_iam_policy_document.beanstalk[0].json
 }
 
 
