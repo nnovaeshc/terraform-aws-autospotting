@@ -107,7 +107,8 @@ resource "aws_cloudwatch_log_group" "autospotting" {
 # Cloudwatch event IAM Role
 #####
 resource "aws_iam_role" "scheduled_task_event_role" {
-  name = "${module.label.id}-task-event-role"
+  count = var.use_existing_iam_role ? 0 : 1
+  name  = "${module.label.id}-task-event-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -122,13 +123,14 @@ resource "aws_iam_role" "scheduled_task_event_role" {
       }
     ]
   })
-
+  permissions_boundary = var.permissions_boundary_arn != "" ? var.permissions_boundary_arn : null
 }
 
 resource "aws_iam_role_policy" "scheduled_task_event_role_policy" {
+  count  = var.use_existing_iam_role ? 0 : 1
   name   = "${module.label.id}-task-event-role-policy"
-  role   = aws_iam_role.scheduled_task_event_role.id
-  policy = data.aws_iam_policy_document.scheduled_task_event_role_policy_document.json
+  role   = aws_iam_role.scheduled_task_event_role[0].id
+  policy = data.aws_iam_policy_document.scheduled_task_event_role_policy_document[0].json
 }
 
 #####
@@ -147,13 +149,14 @@ resource "aws_cloudwatch_event_rule" "event_rule" {
 }
 
 resource "aws_cloudwatch_event_target" "ecs_scheduled_task" {
+
   rule = aws_cloudwatch_event_rule.event_rule.name
 
   target_id  = null
   arn        = aws_ecs_cluster.autospotting.arn
   input      = null
   input_path = null
-  role_arn   = aws_iam_role.scheduled_task_event_role.arn
+  role_arn   = var.use_existing_iam_role ? var.existing_iam_role_arn : aws_iam_role.scheduled_task_event_role[0].arn
 
   ecs_target {
     task_definition_arn = aws_ecs_task_definition.autospotting_task_definition.arn
@@ -171,6 +174,7 @@ resource "aws_cloudwatch_event_target" "ecs_scheduled_task" {
 }
 
 data "aws_iam_policy_document" "scheduled_task_event_role_policy_document" {
+  count = var.use_existing_iam_role ? 0 : 1
   statement {
     sid    = "AllowECSRunTask"
     effect = "Allow"
