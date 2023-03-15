@@ -5,6 +5,7 @@ data "aws_availability_zones" "available" {
 
 
 module "vpc" {
+  count   = var.use_existing_subnets ? 0 : 1
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 2.21"
 
