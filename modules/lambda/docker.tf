@@ -20,8 +20,13 @@ data "aws_ecr_authorization_token" "source" {
   registry_id = var.lambda_use_public_ecr ? null : split(".", var.lambda_source_ecr)[0]
 }
 
+provider "aws" {
+  alias  = "us-east-1"
+  region = "us-east-1"
+}
 data "aws_ecrpublic_authorization_token" "source" {
-  count = var.lambda_use_public_ecr ? 1 : 0
+  count    = var.lambda_use_public_ecr ? 1 : 0
+  provider = aws.us-east-1
 }
 
 
