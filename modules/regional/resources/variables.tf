@@ -1,4 +1,6 @@
-variable "autospotting_lambda_arn" {}
+variable "autospotting_sqs_queue_arn" {}
+
+variable "autospotting_sqs_queue_url" {}
 
 variable "put_event_role_arn" {}
 

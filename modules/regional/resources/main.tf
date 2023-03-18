@@ -9,8 +9,8 @@ terraform {
 
 data "aws_region" "current" {}
 
-data "aws_arn" "autospotting_lambda_arn" {
-  arn = var.autospotting_lambda_arn
+data "aws_arn" "autospotting_sqs_queue_arn" {
+  arn = var.autospotting_sqs_queue_arn
 }
 
 
@@ -40,17 +40,13 @@ PATTERN
 
 resource "aws_cloudwatch_event_target" "autospotting_regional_ec2_spot_event_capture" {
   rule     = aws_cloudwatch_event_rule.autospotting_regional_ec2_spot_event_capture.name
-  arn      = data.aws_region.current.name == var.main_region ? data.aws_arn.autospotting_lambda_arn.arn : var.event_bus_arn
+  arn      = data.aws_region.current.name == var.main_region ? data.aws_arn.autospotting_sqs_queue_arn.arn : var.event_bus_arn
   role_arn = data.aws_region.current.name == var.main_region ? "" : var.put_event_role_arn
+  sqs_target {
+    message_group_id = "autospotting_${module.label.id}"
+  }
 }
 
-resource "aws_lambda_permission" "autospotting_regional_ec2_spot_event_capture" {
-  count         = data.aws_region.current.name == var.main_region ? 1 : 0
-  action        = "lambda:InvokeFunction"
-  function_name = data.aws_arn.autospotting_lambda_arn.arn
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.autospotting_regional_ec2_spot_event_capture.arn
-}
 
 # Event rule for capturing Instance launch events
 resource "aws_cloudwatch_event_rule" "autospotting_regional_ec2_instance_launch_event_capture" {
@@ -76,16 +72,11 @@ PATTERN
 
 resource "aws_cloudwatch_event_target" "autospotting_regional_ec2_instance_launch_event_capture" {
   rule     = aws_cloudwatch_event_rule.autospotting_regional_ec2_instance_launch_event_capture.name
-  arn      = data.aws_region.current.name == var.main_region ? data.aws_arn.autospotting_lambda_arn.arn : var.event_bus_arn
+  arn      = data.aws_region.current.name == var.main_region ? data.aws_arn.autospotting_sqs_queue_arn.arn : var.event_bus_arn
   role_arn = data.aws_region.current.name == var.main_region ? "" : var.put_event_role_arn
-}
-
-resource "aws_lambda_permission" "autospotting_regional_ec2_instance_launch_event_capture" {
-  count         = data.aws_region.current.name == var.main_region ? 1 : 0
-  action        = "lambda:InvokeFunction"
-  function_name = data.aws_arn.autospotting_lambda_arn.arn
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.autospotting_regional_ec2_instance_launch_event_capture.arn
+  sqs_target {
+    message_group_id = "autospotting_${module.label.id}"
+  }
 }
 
 
@@ -121,14 +112,44 @@ PATTERN
 
 resource "aws_cloudwatch_event_target" "autospotting_regional_autoscaling_lifecycle_hook_event_capture" {
   rule     = aws_cloudwatch_event_rule.autospotting_regional_autoscaling_lifecycle_hook_event_capture.name
-  arn      = data.aws_region.current.name == var.main_region ? data.aws_arn.autospotting_lambda_arn.arn : var.event_bus_arn
+  arn      = data.aws_region.current.name == var.main_region ? data.aws_arn.autospotting_sqs_queue_arn.arn : var.event_bus_arn
   role_arn = data.aws_region.current.name == var.main_region ? "" : var.put_event_role_arn
+  sqs_target {
+    message_group_id = "autospotting_${module.label.id}"
+  }
 }
 
-resource "aws_lambda_permission" "autospotting_regional_autoscaling_lifecycle_hook_event_capture" {
-  count         = data.aws_region.current.name == var.main_region ? 1 : 0
-  action        = "lambda:InvokeFunction"
-  function_name = data.aws_arn.autospotting_lambda_arn.arn
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.autospotting_regional_autoscaling_lifecycle_hook_event_capture.arn
+resource "aws_sqs_queue_policy" "autospotting_events_to_sqs" {
+  count     = data.aws_region.current.name == var.main_region ? 1 : 0
+  queue_url = var.autospotting_sqs_queue_url
+  policy    = data.aws_iam_policy_document.autospotting_sqs_policy[0].json
+}
+
+
+data "aws_iam_policy_document" "autospotting_sqs_policy" {
+  count   = data.aws_region.current.name == var.main_region ? 1 : 0
+  version = "2012-10-17"
+
+  statement {
+    sid    = "AllowEventBridgeToSendSQSMessage"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+
+    actions   = ["sqs:SendMessage"]
+    resources = [data.aws_arn.autospotting_sqs_queue_arn.arn]
+
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values = [
+        aws_cloudwatch_event_rule.autospotting_regional_ec2_instance_launch_event_capture.arn,
+        aws_cloudwatch_event_rule.autospotting_regional_ec2_spot_event_capture.arn,
+        aws_cloudwatch_event_rule.autospotting_regional_autoscaling_lifecycle_hook_event_capture.arn,
+      ]
+    }
+  }
 }

@@ -171,6 +171,9 @@ resource "aws_cloudwatch_event_target" "ecs_scheduled_task" {
       assign_public_ip = true
     }
   }
+  depends_on = [
+    aws_cloudwatch_event_rule.event_rule
+  ]
 }
 
 data "aws_iam_policy_document" "scheduled_task_event_role_policy_document" {
