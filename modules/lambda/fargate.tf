@@ -166,7 +166,7 @@ resource "aws_cloudwatch_event_target" "ecs_scheduled_task" {
     group               = null
 
     network_configuration {
-      subnets          = var.use_existing_subnets ? var.existing_subnets : module.vpc.public_subnets
+      subnets          = var.use_existing_subnets ? var.existing_subnets : module.vpc[0].public_subnets
       security_groups  = []
       assign_public_ip = true
     }
