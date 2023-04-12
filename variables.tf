@@ -139,17 +139,6 @@ EOF
   default     = ""
 }
 
-variable "autospotting_ebs_gp2_conversion_threshold" {
-  description = <<EOF
-  The EBS volume size below which to automatically replace GP2 EBS volumes
-        to the newer GP3 volume type, that's 20% cheaper and more performant than
-        GP2 for smaller sizes, but it's not getting more performant wth size as
-        GP2 does. Over 170 GB GP2 gets better throughput, and at 1TB GP2 also has
-        better IOPS than a baseline GP3 volume.
-  EOF
-  default     = 170
-}
-
 variable "notify_email_addresses" {
   description = <<EOF
     Addresses to receive notifications for AutoSpotting actions and savings reports.
@@ -169,16 +158,6 @@ variable "autospotting_enable_instance_rebalance_recommendation" {
   }
 }
 
-
-
-variable "autospotting_instance_termination_method" {
-  description = <<EOF
-Instance termination method. Must be one of 'autoscaling' (default) or
-'detach' (compatibility mode, not recommended).
-EOF
-  default     = "autoscaling"
-}
-
 variable "autospotting_min_on_demand_number" {
   description = "Minimum on-demand instances to keep in absolute value"
   type        = number
@@ -195,19 +174,6 @@ variable "autospotting_on_demand_price_multiplier" {
   description = "Multiplier for the on-demand price"
   type        = number
   default     = "1.0"
-}
-
-variable "autospotting_patch_beanswalk_userdata" {
-  description = <<EOF
-Controls whether AutoSpotting patches Elastic Beanstalk UserData
-        scripts to use the instance role when calling CloudFormation helpers
-        instead of the standard CloudFormation authentication method.
-        After creating this CloudFormation stack, you must add the
-        AutoSpotting's ElasticBeanstalk managed policy to your Beanstalk
-        instance profile/role if you turn this option to true
-EOF
-  type        = bool
-  default     = false
 }
 
 variable "autospotting_prioritized_instance_types_bias" {
@@ -255,30 +221,6 @@ variable "autospotting_spot_allocation_strategy" {
     error_message = "Valid value is one of the following: capacity-optimized-prioritized, capacity-optimized, lowest-price."
   }
   default = "capacity-optimized-prioritized"
-}
-
-
-variable "autospotting_spot_product_description" {
-  description = <<EOF
-The Spot Product or operating system to use when looking
-up spot price history in the market.
-
-Valid choices
-- Linux/UNIX | SUSE Linux | Windows
-- Linux/UNIX (Amazon VPC) | SUSE Linux (Amazon VPC) | Windows (Amazon VPC)
-EOF
-  default     = "Linux/UNIX (Amazon VPC)"
-}
-
-variable "autospotting_spot_product_premium" {
-
-  description = <<EOF
-The Product Premium hourly charge to apply to the on demand price to improve spot
-selection and savings calculations when using a premium instance type
-such as RHEL.
-EOF
-  type        = number
-  default     = 0
 }
 
 
@@ -352,7 +294,7 @@ variable "lambda_source_image" {
 
 variable "lambda_source_image_tag" {
   description = "The version of the Docker image used for the Lambda function"
-  default     = "stable-1.1.3-1"
+  default     = "stable-1.2.0-rc2"
 }
 
 

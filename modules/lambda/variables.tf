@@ -4,16 +4,11 @@ variable "autospotting_cron_schedule_state" {}
 variable "autospotting_cron_schedule" {}
 variable "autospotting_cron_timezone" {}
 variable "autospotting_disallowed_instance_types" {}
-variable "autospotting_ebs_gp2_conversion_threshold" {}
-variable "autospotting_instance_termination_method" {}
 variable "autospotting_min_on_demand_number" {}
 variable "autospotting_min_on_demand_percentage" {}
 variable "autospotting_on_demand_price_multiplier" {}
-variable "autospotting_patch_beanswalk_userdata" {}
 variable "autospotting_regions_enabled" {}
 variable "autospotting_spot_price_buffer_percentage" {}
-variable "autospotting_spot_product_description" {}
-variable "autospotting_spot_product_premium" {}
 variable "autospotting_tag_filtering_mode" {}
 variable "autospotting_tag_filters" {}
 variable "autospotting_termination_notification_action" {}

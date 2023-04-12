@@ -75,21 +75,16 @@ module "aws_lambda_function" {
   autospotting_cron_schedule_state                  = var.autospotting_cron_schedule_state
   autospotting_cron_timezone                        = var.autospotting_cron_timezone
   autospotting_disallowed_instance_types            = var.autospotting_disallowed_instance_types
-  autospotting_ebs_gp2_conversion_threshold         = var.autospotting_ebs_gp2_conversion_threshold
 
   autospotting_enable_instance_rebalance_recommendation = var.autospotting_enable_instance_rebalance_recommendation
-  autospotting_instance_termination_method              = var.autospotting_instance_termination_method
   autospotting_min_on_demand_number                     = var.autospotting_min_on_demand_number
   autospotting_min_on_demand_percentage                 = var.autospotting_min_on_demand_percentage
   autospotting_on_demand_price_multiplier               = var.autospotting_on_demand_price_multiplier
-  autospotting_patch_beanswalk_userdata                 = var.autospotting_patch_beanswalk_userdata
   autospotting_prioritized_instance_types_bias          = var.autospotting_prioritized_instance_types_bias
   autospotting_regions_enabled                          = var.autospotting_regions_enabled
   autospotting_savings_reports_frequency                = var.autospotting_savings_reports_frequency
   autospotting_spot_allocation_strategy                 = var.autospotting_spot_allocation_strategy
   autospotting_spot_price_buffer_percentage             = var.autospotting_spot_price_buffer_percentage
-  autospotting_spot_product_description                 = var.autospotting_spot_product_description
-  autospotting_spot_product_premium                     = var.autospotting_spot_product_premium
   autospotting_tag_filtering_mode                       = var.autospotting_tag_filtering_mode
   autospotting_tag_filters                              = var.autospotting_tag_filters
   autospotting_termination_notification_action          = var.autospotting_termination_notification_action
@@ -156,9 +151,6 @@ resource "aws_iam_policy" "beanstalk_policy" {
   name   = "elastic_beanstalk_iam_policy_for_${module.label.id}"
   policy = data.aws_iam_policy_document.beanstalk[0].json
 }
-
-
-
 
 resource "aws_iam_role" "put_events_role" {
   count                 = var.use_existing_iam_role ? 0 : 1
