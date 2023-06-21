@@ -32,7 +32,6 @@ resource "aws_lambda_function" "autospotting" {
   timeout       = var.lambda_timeout
   memory_size   = var.lambda_memory_size
   tags          = merge(var.lambda_tags, module.label.tags)
-  architectures = ["arm64"]
 
   environment {
     variables = {
