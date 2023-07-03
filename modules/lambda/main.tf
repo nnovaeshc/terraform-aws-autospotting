@@ -98,6 +98,7 @@ data "aws_iam_policy_document" "autospotting_policy" {
       "autoscaling:DescribeTags",
       "autoscaling:DetachInstances",
       "autoscaling:ResumeProcesses",
+      "autoscaling:SetInstanceProtection",
       "autoscaling:SuspendProcesses",
       "autoscaling:TerminateInstanceInAutoScalingGroup",
       "autoscaling:UpdateAutoScalingGroup",
