@@ -294,7 +294,7 @@ variable "lambda_source_image" {
 
 variable "lambda_source_image_tag" {
   description = "The version of the Docker image used for the Lambda function"
-  default     = "stable-1.2.2-0"
+  default     = "stable-1.3.0-2"
 }
 
 
