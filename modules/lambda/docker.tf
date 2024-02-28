@@ -18,6 +18,7 @@ resource "aws_ecr_repository" "autospotting" {
 data "aws_ecr_authorization_token" "source" {
   count       = var.lambda_use_public_ecr ? 0 : 1
   registry_id = var.lambda_use_public_ecr ? null : split(".", var.lambda_source_ecr)[0]
+  provider    = aws.us-east-1
 }
 
 provider "aws" {
