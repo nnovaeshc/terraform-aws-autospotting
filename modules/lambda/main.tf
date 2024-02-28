@@ -126,6 +126,7 @@ data "aws_iam_policy_document" "autospotting_policy" {
       "ec2:DescribeLaunchTemplateVersions",
       "ec2:DescribeRegions",
       "ec2:DescribeSpotPriceHistory",
+      "ec2:DescribeSecurityGroups",
       "ec2:DescribeVolumes",
       "ec2:DetachVolume",
       "ec2:DisassociateAddress",
