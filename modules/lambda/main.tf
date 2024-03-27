@@ -113,6 +113,7 @@ data "aws_iam_policy_document" "autospotting_policy" {
       "codedeploy:GetDeploymentGroup",
       "codedeploy:ListApplications",
       "codedeploy:ListDeploymentGroups",
+      "elasticbeanstalk:DescribeEnvironments",
       "ec2:AssociateAddress",
       "ec2:AttachVolume",
       "ec2:CreateFleet",
