@@ -192,7 +192,7 @@ resource "aws_sqs_queue" "autospotting_fifo_queue" {
   name                        = var.sqs_fifo_queue_name
   content_based_deduplication = true
   fifo_queue                  = true
-  message_retention_seconds   = 86400
+  message_retention_seconds   = 900
   visibility_timeout_seconds  = 900
 }
 
