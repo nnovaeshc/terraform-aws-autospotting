@@ -158,6 +158,12 @@ variable "autospotting_enable_instance_rebalance_recommendation" {
   }
 }
 
+variable "autospotting_instance_types_per_az" {
+  type        = number
+  default     = 1
+  description = "Number of instance types to diversify over for each availability zone. Can be overridden on a per-group basis using the tag  'autospotting_number_of_instance_types_per_az'."
+}
+
 variable "autospotting_min_on_demand_number" {
   description = "Minimum on-demand instances to keep in absolute value"
   type        = number

@@ -33,6 +33,11 @@ variable "autospotting_enable_instance_rebalance_recommendation" {
   description = "Flag to control whether Autospotting should recommend instance rebalance based on memory, CPU, and IO."
 }
 
+variable "autospotting_instance_types_per_az" {
+  type        = number
+  description = "Number of instance types to diversify over for each availability zone. Can be overridden on a per-group basis using the tag  'autospotting_number_of_instance_types_per_az'."
+}
+
 variable "autospotting_prioritized_instance_types_bias" {
   type        = string
   description = "Controls the Autospotting instance selection strategy. Valid values: 'prefer_newer_generations', 'lowest_price'."

@@ -45,13 +45,13 @@ resource "aws_lambda_function" "autospotting" {
       CRON_TIMEZONE                            = var.autospotting_cron_timezone
       DISALLOWED_INSTANCE_TYPES                = var.autospotting_disallowed_instance_types
       ENABLE_INSTANCE_REBALANCE_RECOMMENDATION = var.autospotting_enable_instance_rebalance_recommendation
+      INSTANCE_TYPES_PER_AZ                    = var.autospotting_instance_types_per_az
       MIN_ON_DEMAND_NUMBER                     = var.autospotting_min_on_demand_number
       MIN_ON_DEMAND_PERCENTAGE                 = var.autospotting_min_on_demand_percentage
       NOTIFICATION_SNS_TOPIC                   = aws_sns_topic.email_notification.arn
       ON_DEMAND_PRICE_MULTIPLIER               = var.autospotting_on_demand_price_multiplier
       PRIORITIZED_INSTANCE_TYPES_BIAS          = var.autospotting_prioritized_instance_types_bias
       REGIONS                                  = join(",", var.autospotting_regions_enabled)
-      SAVINGS_REPORTS_FREQUENCY                = var.autospotting_savings_reports_frequency
       SPOT_ALLOCATION_STRATEGY                 = var.autospotting_spot_allocation_strategy
       SPOT_PRICE_BUFFER_PERCENTAGE             = var.autospotting_spot_price_buffer_percentage
       SQS_QUEUE_URL                            = aws_sqs_queue.autospotting_fifo_queue.id

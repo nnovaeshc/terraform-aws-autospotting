@@ -25,7 +25,7 @@ module "autospotting-test" {
   # lambda_use_public_ecr    = true
   # lambda_source_ecr        = "public.ecr.aws"
   # lambda_source_image      = "u1c5s9l5/autospotting"
-  # lambda_source_image_tag  = "stable-1.1.3-1-sainsburys-trial"
+  lambda_source_image_tag = "stable-1.3.0-0"
   # permissions_boundary_arn = ""
 }
 

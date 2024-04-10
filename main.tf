@@ -77,6 +77,7 @@ module "aws_lambda_function" {
   autospotting_disallowed_instance_types            = var.autospotting_disallowed_instance_types
 
   autospotting_enable_instance_rebalance_recommendation = var.autospotting_enable_instance_rebalance_recommendation
+  autospotting_instance_types_per_az                    = var.autospotting_instance_types_per_az
   autospotting_min_on_demand_number                     = var.autospotting_min_on_demand_number
   autospotting_min_on_demand_percentage                 = var.autospotting_min_on_demand_percentage
   autospotting_on_demand_price_multiplier               = var.autospotting_on_demand_price_multiplier
