@@ -7,7 +7,7 @@ locals {
 data "aws_availability_zones" "available" {
   state = "available"
 }
-
+data "aws_regions" "current" {}
 
 module "vpc" {
   count   = var.use_existing_subnets ? 0 : 1
@@ -42,12 +42,16 @@ resource "aws_ecs_cluster_capacity_providers" "example" {
 
 
 resource "aws_ecs_task_definition" "autospotting_task_definition" {
-  family                   = "autospotting-${module.label.id}"
-  execution_role_arn       = var.use_existing_iam_role ? data.aws_arn.role_arn[0].arn : aws_iam_role.autospotting_role[0].arn
+  family                   = "${module.label.id}-task-definition"
+  execution_role_arn       = local.execution_role_arn
+  task_role_arn            = local.task_role_arn
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 256
   memory                   = 512
+  runtime_platform {
+    cpu_architecture = var.lambda_cpu_architecture == "arm64" ? "ARM64" : "X86_64"
+  }
 
   container_definitions = jsonencode([{
     name  = "autospotting-${module.label.id}"
@@ -67,6 +71,14 @@ resource "aws_ecs_task_definition" "autospotting_task_definition" {
       name  = "SAVINGS_REPORTS_FREQUENCY"
       value = var.autospotting_savings_reports_frequency
     }]
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = aws_cloudwatch_log_group.autospotting.name
+        awslogs-region        = data.aws_region.current.name
+        awslogs-stream-prefix = "autospotting-billing" // This is a prefix used in the names of the log streams
+      }
+    }
   }])
 
   tags = module.label.tags
@@ -98,7 +110,7 @@ resource "aws_iam_role_policy_attachment" "autospotting_task_execution_policy_at
 
 
 resource "aws_cloudwatch_log_group" "autospotting" {
-  name              = "autospotting-${module.label.id}"
+  name              = "/fargate/autospotting-${module.label.id}/billing"
   retention_in_days = 7
 }
 
@@ -140,13 +152,86 @@ resource "aws_cloudwatch_event_rule" "event_rule" {
   name                = "${module.label.id}-rule"
   description         = ""
   schedule_expression = "rate(1 hour)"
-  role_arn            = null
-  is_enabled          = true
+  role_arn            = aws_iam_role.task_scheduler_role.arn
+
 
   tags = {
     Name = "${module.label.id}-rule"
   }
 }
+
+resource "aws_iam_role" "task_scheduler_role" {
+  name = "${module.label.id}-cloudwatch-event-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "events.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  path = "/"
+}
+
+resource "aws_iam_role_policy" "task_scheduler_policy" {
+  name = "TaskSchedulerPolicy"
+  role = aws_iam_role.task_scheduler_role.id
+
+  policy = jsonencode({
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:RunTask",
+          "iam:ListInstanceProfiles",
+          "iam:ListRoles",
+          "iam:PassRole"
+        ]
+        Resource = "*"
+        Condition = {
+          ArnEquals = {
+            "ecs:cluster" = "${aws_ecs_cluster.autospotting.arn}"
+          }
+        }
+      }
+    ]
+  })
+}
+
+
+resource "aws_iam_policy" "ecs_task_execution_policy" {
+  name = "${module.label.id}-ecs-task-execution-policy"
+  path = "/"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy_attachment_custom" {
+  role       = aws_iam_role.task_scheduler_role.name
+  policy_arn = aws_iam_policy.ecs_task_execution_policy.arn
+}
+
 
 resource "aws_cloudwatch_event_target" "ecs_scheduled_task" {
 

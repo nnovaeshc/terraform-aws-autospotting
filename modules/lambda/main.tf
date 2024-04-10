@@ -69,8 +69,12 @@ data "aws_iam_policy_document" "lambda_policy" {
   statement {
     actions = ["sts:AssumeRole"]
     principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
+      type = "Service"
+      identifiers = [
+        "lambda.amazonaws.com",
+        "ecs-tasks.amazonaws.com",
+      ]
+
     }
   }
 }
