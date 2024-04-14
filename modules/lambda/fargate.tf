@@ -7,7 +7,7 @@ locals {
 data "aws_availability_zones" "available" {
   state = "available"
 }
-data "aws_regions" "current" {}
+data "aws_region" "current" {}
 
 module "vpc" {
   count   = var.use_existing_subnets ? 0 : 1

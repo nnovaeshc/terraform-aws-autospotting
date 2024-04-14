@@ -13,7 +13,6 @@ module "label" {
 }
 
 data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
 
 data "aws_arn" "role_arn" {
   count = var.use_existing_iam_role ? 1 : 0
@@ -174,7 +173,7 @@ data "aws_iam_policy_document" "autospotting_policy" {
       "ssm:PutParameter",
       "ssm:GetParameterHistory"
     ]
-    resources = ["arn:aws:ssm:us-east-1:${data.aws_caller_identity.current.account_id}:parameter/autospotting*"]
+    resources = ["arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/autospotting*"]
   }
 }
 
