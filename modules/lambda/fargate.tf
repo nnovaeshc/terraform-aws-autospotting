@@ -55,7 +55,7 @@ resource "aws_ecs_task_definition" "autospotting_task_definition" {
 
   container_definitions = jsonencode([{
     name  = "autospotting-${module.label.id}"
-    image = "${aws_ecr_repository.autospotting.repository_url}:${var.lambda_source_image_tag}"
+    image = local.lambda_function_image_uri
 
 
     environment = [{

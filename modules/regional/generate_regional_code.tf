@@ -1,4 +1,9 @@
-data "aws_regions" "current" {}
+data "aws_regions" "current" {
+  filter {
+    name   = "opt-in-status"
+    values = ["opt-in-not-required"]
+  }
+}
 
 locals {
   all_regions = data.aws_regions.current.names
